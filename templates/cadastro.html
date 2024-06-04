@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/stylestatics.css') }}">
 </head>
 <body>
+    <a href="/" class="back-button">Voltar</a>
     <div class="container">
         <div class="box">
             <h2>Bem-vindo ao sistema de cadastro ao banco</h2>
@@ -17,6 +18,14 @@
                 </div>
                 <div class="form-group">
                     <input type="password" name="senha" placeholder="Senha">
+                </div>
+                <div class="form-group">
+                    <select name="tipo_de_conta">
+                        <option value="" disabled selected>Tipo de conta</option>
+                        <option value="fisica">Física</option>
+                        <option value="juridica">Jurídica</option>
+                        <option value="conjunta">Conjunta</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <button type="submit">Enviar</button>
