@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transferência Bancária</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Transferência Bancária</h1>
+    </header>
+    <div class="dashboard-container">
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/transferencia">Transferência</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <div class="container">
+                <div class="box">
+                    <h2>Fazer Transferência</h2>
+                    <form id="transferForm">
+                        <div class="form-group">
+                            <label for="from_conta_id">Conta de Origem:</label>
+                            <input type="text" id="from_conta_id" name="from_conta_id" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ip_intermediario">IP do Servidor Intermediário:</label>
+                            <input type="text" id="ip_intermediario" name="ip_intermediario" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ip_final">IP do Servidor Final:</label>
+                            <input type="text" id="ip_final" name="ip_final" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="to_conta_id">Conta de Destino:</label>
+                            <input type="text" id="to_conta_id" name="to_conta_id" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="valor_origem">Valor a Transferir:</label>
+                            <input type="number" id="valor_origem" name="valor_origem" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="valor_intermediario">Valor Intermediário:</label>
+                            <input type="number" id="valor_intermediario" name="valor_intermediario" required>
+                        </div>
+                        <button type="submit">Transferir</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    <footer>
+        <p>&copy; 2024 Banco Exemplo. Todos os direitos reservados.</p>
+    </footer>
+    <script>
+        document.getElementById("transferForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+
+            fetch('/fazer_transferencia_complexa', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                alert('Transferência realizada com sucesso!');
+                window.location.href = '/dashboard';
+            })
+            .catch(error => {
+                console.error('Erro ao transferir:', error);
+                alert('Erro ao transferir fundos. Verifique os dados e tente novamente.');
+            });
+        });
+    </script>
+</body>
+</html>

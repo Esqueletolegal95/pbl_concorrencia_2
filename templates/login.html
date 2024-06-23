@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulário</title>
+    <title>Formulário de Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/stylestatics.css') }}">
 </head>
 <body>
@@ -12,9 +12,9 @@
         <div class="box">
             <h2>Bem-vindo</h2>
             <p>Faça seu login.</p>
-            <form action="/logar" method="post">
+            <form action="/login" method="post">
                 <div class="form-group">
-                    <input type="text" name="name" placeholder="Nome">
+                    <input type="text" name="conta_id" placeholder="ID da Conta">
                 </div>
                 <div class="form-group">
                     <input type="password" name="senha" placeholder="Senha">
