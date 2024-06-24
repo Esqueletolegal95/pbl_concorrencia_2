@@ -1,13 +1,13 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 import requests
 import threading
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # Chave secreta para as sessões
 
-# Inicialização das contas como um dicionário de dicionários
-contas = {}
-contas_lock = threading.Lock()
-contador_contas = 0
+# Inicialização da conta única
+conta = {}
+conta_lock = threading.Lock()
 
 class TransactionLog:
     def __init__(self):
@@ -55,57 +55,54 @@ class LockManager:
 
 lock_manager = LockManager()
 
-# Rota para retornar uma conta específica
-@app.route('/conta/<conta_id>', methods=['GET'])
-def get_conta(conta_id):
-    lock_manager.acquire(conta_id, 'read')
+# Rota para retornar a conta
+@app.route('/conta', methods=['GET'])
+def get_conta():
+    if 'user_id' not in session:
+        return {"error": "Acesso não autorizado."}, 403
+
+    lock_manager.acquire('conta', 'read')
     try:
-        if conta_id in contas:
-            return jsonify(contas[conta_id])
+        if conta:
+            return jsonify(conta)
         else:
             return {"error": "Conta não encontrada."}, 404
     finally:
-        lock_manager.release(conta_id, 'read')
+        lock_manager.release('conta', 'read')
 
-# Rota para definir uma nova conta
+# Rota para definir a conta
 @app.route('/submit', methods=['POST'])
 def submit():
-    global contador_contas
-    with contas_lock:
-        contador_contas += 1
-        conta_id = str(contador_contas)
-    
-    lock_manager.acquire(conta_id, 'write')
+    lock_manager.acquire('conta', 'write')
     try:
-        contas[conta_id] = {
+        conta.update({
             'nome': request.form["name"],
             'tipo': request.form["tipo_de_conta"],
             'valor': 1000,  # Valor inicial da conta
             'senha': request.form["senha"]
-        }
-        return jsonify(contas[conta_id])
+        })
+        return jsonify(conta)
     finally:
-        lock_manager.release(conta_id, 'write')
+        lock_manager.release('conta', 'write')
 
 def undo_transfer(data):
-    contas[data['conta_id']]['valor'] += data['valor']
+    conta['valor'] += data['valor']
 
 def process_transfer_complex(transfer_data):
     transaction_log = TransactionLog()
-    from_conta_id = transfer_data["from_conta_id"]
     ip_intermediario = transfer_data["ip_intermediario"]
     ip_final = transfer_data["ip_final"]
     to_conta_id = transfer_data['to_conta_id']
     valor_origem = transfer_data['valor_origem']
     valor_intermediario = transfer_data['valor_intermediario']
 
-    lock_manager.acquire(from_conta_id, 'write')
+    lock_manager.acquire('conta', 'write')
     try:
-        if contas[from_conta_id]['valor'] < valor_origem:
+        if conta['valor'] < valor_origem:
             return {"error": "Fundos insuficientes na conta de origem."}, 400
 
         transfer_request_data_intermediario = {
-            'from_conta_id': from_conta_id,
+            'from_conta_id': 'conta',
             'valor': valor_intermediario,
             'ip_final': ip_final,
             'to_conta_id': to_conta_id
@@ -133,28 +130,30 @@ def process_transfer_complex(transfer_data):
             transaction_log.rollback()
             return {"error": "A transferência não foi validada pelo servidor de destino final."}, 400
 
-        transaction_log.log(undo_transfer, {'conta_id': from_conta_id, 'valor': valor_origem})
-        contas[from_conta_id]['valor'] -= valor_origem
+        transaction_log.log(undo_transfer, {'valor': valor_origem})
+        conta['valor'] -= valor_origem
         print(f"Transferência enviada: {valor_origem} para {ip_final}")
 
         return {
             "to_conta_id": to_conta_id,
             "valor_transferencia": valor_origem + valor_intermediario,
-            "novo_saldo": contas[from_conta_id]['valor']
+            "novo_saldo": conta['valor']
         }
     except Exception as e:
         transaction_log.rollback()
         raise e
     finally:
-        lock_manager.release(from_conta_id, 'write')
+        lock_manager.release('conta', 'write')
 
 @app.route('/fazer_transferencia_complexa', methods=['POST'])
 def fazer_transferencia_complexa():
+    if 'user_id' not in session:
+        return {"error": "Acesso não autorizado."}, 403
+
     transfer_data = {
-        "from_conta_id": request.form["from_conta_id"],
         "ip_intermediario": request.form["ip_intermediario"],
         "ip_final": request.form["ip_final"],
-        "to_conta_id": int(request.form['to_conta_id']),
+        "to_conta_id": request.form['to_conta_id'],
         "valor_origem": float(request.form['valor_origem']),
         "valor_intermediario": float(request.form['valor_intermediario'])
     }
@@ -164,37 +163,35 @@ def fazer_transferencia_complexa():
 
 @app.route('/receber_transferencia', methods=['POST'])
 def receber_transferencia():
-    conta_id = request.json['to_conta_id']
     valor_transferencia = float(request.json['valor'])
 
-    lock_manager.acquire(conta_id, 'write')
+    lock_manager.acquire('conta', 'write')
     try:
-        if conta_id in contas:
-            contas[conta_id]['valor'] += valor_transferencia
+        if conta:
+            conta['valor'] += valor_transferencia
             print(f"Transferência recebida: {valor_transferencia}")
-            return jsonify({"status": "ACK", "novo_saldo": contas[conta_id]['valor']})
+            return jsonify({"status": "ACK", "novo_saldo": conta['valor']})
         else:
             return {"error": "Conta não encontrada."}, 404
     finally:
-        lock_manager.release(conta_id, 'write')
+        lock_manager.release('conta', 'write')
 
 def undo_intermediate_transfer(data):
-    contas[data['conta_id']]['valor'] += data['valor']
+    conta['valor'] += data['valor']
 
 @app.route('/executar_transferencia', methods=['POST'])
 def executar_transferencia():
-    from_conta_id = request.json['from_conta_id']
     valor_transferencia = float(request.json['valor'])
     ip_final = request.json['ip_final']
     to_conta_id = int(request.json['to_conta_id'])
     transaction_log = TransactionLog()
 
-    lock_manager.acquire(from_conta_id, 'write')
+    lock_manager.acquire('conta', 'write')
     try:
-        if from_conta_id not in contas:
+        if not conta:
             return {"error": "Conta intermediária não encontrada."}, 404
 
-        if contas[from_conta_id]['valor'] < valor_transferencia:
+        if conta['valor'] < valor_transferencia:
             return {"error": "Fundos insuficientes na conta intermediária."}, 400
 
         transfer_request_data = {'valor': valor_transferencia, 'to_conta_id': to_conta_id}
@@ -209,28 +206,80 @@ def executar_transferencia():
             transaction_log.rollback()
             return {"error": "A transferência não foi validada pelo servidor de destino final."}, 400
 
-        transaction_log.log(undo_intermediate_transfer, {'conta_id': from_conta_id, 'valor': valor_transferencia})
-        contas[from_conta_id]['valor'] -= valor_transferencia
+        transaction_log.log(undo_intermediate_transfer, {'valor': valor_transferencia})
+        conta['valor'] -= valor_transferencia
         print(f"Transferência enviada: {valor_transferencia} para {ip_final}")
 
-        return jsonify({"status": "ACK", "novo_saldo": contas[from_conta_id]['valor']})
+        return jsonify({"status": "ACK", "novo_saldo": conta['valor']})
     except Exception as e:
         transaction_log.rollback()
         raise e
     finally:
-        lock_manager.release(from_conta_id, 'write')
+        lock_manager.release('conta', 'write')
 
 @app.route('/')
 def home():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        senha = request.form['senha']
+        
+        lock_manager.acquire('conta', 'read')
+        try:
+            if conta and conta['senha'] == senha:
+                session['user_id'] = 'conta'
+                return redirect(url_for('dashboard'))
+            else:
+                return {"error": "Credenciais inválidas."}, 401
+        finally:
+            lock_manager.release('conta', 'read')
+    
     return render_template('login.html')
 
-@app.route('/cadastro')
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('home'))
+
+@app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
+    if request.method == 'POST':
+        lock_manager.acquire('conta', 'write')
+        try:
+            conta.update({
+                'nome': request.form["name"],
+                'tipo': request.form["tipo_de_conta"],
+                'valor': 1000,  # Valor inicial da conta
+                'senha': request.form["senha"]
+            })
+            return redirect(url_for('login'))
+        finally:
+            lock_manager.release('conta', 'write')
+
     return render_template('cadastro.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    lock_manager.acquire('conta', 'read')
+    try:
+        if conta:
+            return render_template('dashboard.html', conta=conta)
+        else:
+            session.pop('user_id')
+            return {"error": "Conta não encontrada."}, 404
+    finally:
+        lock_manager.release('conta', 'read')
+        
+@app.route('/transferencia')
+def transferencia():
+    return render_template('transferencia.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
