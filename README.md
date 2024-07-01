@@ -1,7 +1,7 @@
 # pbl_concorrencia_2
 
 ## Como executar a aplicação:
- Para executar os dispositivos e o servidor é necessário abrir o terminal até o diretório onde estão os arquivos ```DOCKERFILE``` tanto do server quanto para o cliente e executar os passos abaixo:
+ Para executar os dispositivos e o servidor é necessário abrir o terminal até o diretório onde está o arquivo ```DOCKERFILE``` e executar os passos abaixo:
  1. **Criar Containers Para Servidor**
 
     ```bash
