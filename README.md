@@ -26,3 +26,4 @@ A aplicação possui um servidor FLASK com duas rotas API para a transferência,
 ![image](https://github.com/Esqueletolegal95/pbl_concorrencia_2/assets/113029820/234517ea-a473-4c7b-a0b5-d7521453e6e9)
 ![image](https://github.com/Esqueletolegal95/pbl_concorrencia_2/assets/113029820/76755a2b-a1f0-4e7a-90fc-bbe28e5aae87)
 
+# Sincronização em um único servidor.
