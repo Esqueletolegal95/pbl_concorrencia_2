@@ -26,4 +26,5 @@ A aplicação possui um servidor FLASK com duas rotas API para a transferência,
 ![image](https://github.com/Esqueletolegal95/pbl_concorrencia_2/assets/113029820/234517ea-a473-4c7b-a0b5-d7521453e6e9)
 
 # Sincronização em um único servidor.
+A sulução utiliza uma rota api para o recebimento de transações, onde é utilizado um gerenciador de bloqueio para impedir que mais de uma transação seja processada ao mesmo tempo, impedindo inconsistência de dados
 ![image](https://github.com/Esqueletolegal95/pbl_concorrencia_2/assets/113029820/76755a2b-a1f0-4e7a-90fc-bbe28e5aae87)
