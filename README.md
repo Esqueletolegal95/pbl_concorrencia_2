@@ -28,3 +28,13 @@ A aplicação possui um servidor FLASK com duas rotas API para a transferência,
 # Sincronização em um único servidor.
 A sulução utiliza uma rota api para o recebimento de transações, onde é utilizado um gerenciador de bloqueio para impedir que mais de uma transação seja processada ao mesmo tempo, impedindo inconsistência de dados
 ![image](https://github.com/Esqueletolegal95/pbl_concorrencia_2/assets/113029820/76755a2b-a1f0-4e7a-90fc-bbe28e5aae87)
+# Algoritmo da concorrencia distribuída está teoricamente bem empregado?
+O algoritmo utilizado é um two phase lock em conjunto do protocolo ACK, utilizado para que aja sincronia entre os servidores, adequado para sistemas simples. Para algo mais complexo, poderia ter sido utilizado o two phase commit.
+
+# Tratamento da confiabilidade
+
+Se um banco intermediário ou final estiver offline durante uma transferência, a transação não poderá ser completada. O sistema tentará realizar a operação e falhará.
+
+# Pelo menos uma transação concorrente é realizada ?
+
+Sim, pelo menos uma transação concorrente é realizada, pois o sistema permite múltiplas leituras simultâneas e serializa as escritas. O uso de locks garante que o saldo permanece consistente mesmo com transações concorrentes.
