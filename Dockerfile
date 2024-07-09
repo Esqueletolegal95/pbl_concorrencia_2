@@ -5,8 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copie os arquivos necessários para o contêiner
-COPY requirements.txt .
-COPY apptest2PL.py .
+COPY apptest.py .
 COPY templates/ templates/
 COPY static/ static/
 
@@ -19,4 +18,4 @@ RUN pip install requests
 EXPOSE 5050
 
 # Comando para executar o aplicativo Flask quando o contêiner for iniciado
-CMD ["python", "apptest2PL.py"]
+CMD ["python", "apptest.py"]
